@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Meeting Snap</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #f7f7f7;
+        color: #222;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      form {
+        margin-bottom: 2rem;
+      }
+      textarea {
+        width: 100%;
+        height: 220px;
+        padding: 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        resize: vertical;
+      }
+      button {
+        margin-top: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+        background: #0059b2;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #00458c;
+      }
+      .banner {
+        background: #fff4cc;
+        border: 1px solid #f0c36d;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+      }
+      .error {
+        background: #ffe5e5;
+        border: 1px solid #ff8c8c;
+        color: #a40000;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      .results section {
+        background: #fff;
+        border-radius: 6px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .results h2 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      ul {
+        padding-left: 1.2rem;
+      }
+      .empty {
+        color: #777;
+        font-style: italic;
+      }
+      .action-meta {
+        color: #555;
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Meeting Snap</h1>
+    <div class="banner">Don’t paste regulated/PII.</div>
+    <form action="{{ url_for('snap') }}" method="post">
+      <label for="transcript">Paste transcript</label>
+      <textarea id="transcript" name="transcript" maxlength="8000" placeholder="Paste meeting transcript here...">{{ transcript }}</textarea>
+      <div>
+        <button type="submit">Create snapshot</button>
+      </div>
+    </form>
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+    <div class="results">
+      <section>
+        <h2>Decisions</h2>
+        {% if snapshot.decisions %}
+          <ul>
+            {% for decision in snapshot.decisions %}
+              <li>{{ decision }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">—</p>
+        {% endif %}
+      </section>
+      <section>
+        <h2>Actions</h2>
+        {% if snapshot.actions %}
+          <ul>
+            {% for item in snapshot.actions %}
+              <li>
+                <div>{{ item.action }}</div>
+                {% if item.owner or item.due %}
+                  <div class="action-meta">
+                    {% if item.owner %}<strong>{{ item.owner }}</strong>{% endif %}
+                    {% if item.owner and item.due %} · {% endif %}
+                    {% if item.due %}Due {{ item.due }}{% endif %}
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">—</p>
+        {% endif %}
+      </section>
+      <section>
+        <h2>Open Questions</h2>
+        {% if snapshot.questions %}
+          <ul>
+            {% for question in snapshot.questions %}
+              <li>{{ question }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">—</p>
+        {% endif %}
+      </section>
+      <section>
+        <h2>Risks / Blockers</h2>
+        {% if snapshot.risks %}
+          <ul>
+            {% for risk in snapshot.risks %}
+              <li>{{ risk }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">—</p>
+        {% endif %}
+      </section>
+      <section>
+        <h2>Next Check-in</h2>
+        <p>{% if snapshot.next_checkin %}{{ snapshot.next_checkin }}{% else %}<span class="empty">—</span>{% endif %}</p>
+      </section>
+    </div>
+  </body>
+</html>
