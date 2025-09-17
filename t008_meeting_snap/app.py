@@ -2,13 +2,24 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Mapping
 
-from flask import Flask, render_template, request
+from flask import Flask, Response, render_template, request
 
 from . import config, extractor, schema
+from .safety import RateLimiter, sanitize_for_log, truncate
+
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+_DEFAULT_RATE_LIMIT_REQUESTS = 60
+_DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60.0
+app.config.setdefault(
+    "RATE_LIMITER",
+    RateLimiter(_DEFAULT_RATE_LIMIT_REQUESTS, _DEFAULT_RATE_LIMIT_WINDOW_SECONDS),
+)
 
 
 def _model_assist_enabled(provider: str) -> bool:
@@ -32,6 +43,34 @@ def _render_page(
     )
 
 
+def _get_rate_limiter() -> RateLimiter:
+    limiter = app.config.get("RATE_LIMITER")
+    if isinstance(limiter, RateLimiter):
+        return limiter
+
+    requests_limit = int(app.config.get("RATE_LIMIT_REQUESTS", _DEFAULT_RATE_LIMIT_REQUESTS))
+    window_seconds = float(
+        app.config.get("RATE_LIMIT_WINDOW_SECONDS", _DEFAULT_RATE_LIMIT_WINDOW_SECONDS)
+    )
+    limiter = RateLimiter(requests_limit, window_seconds)
+    app.config["RATE_LIMITER"] = limiter
+    return limiter
+
+
+def _client_identity() -> str:
+    headers = getattr(request, "headers", None)
+    if headers is not None:
+        forwarded_for = headers.get("X-Forwarded-For", "")  # type: ignore[arg-type]
+        if forwarded_for:
+            first = forwarded_for.split(",", 1)[0].strip()
+            if first:
+                return first
+    remote_addr = getattr(request, "remote_addr", None)
+    if remote_addr:
+        return remote_addr
+    return "global"
+
+
 @app.get("/")
 def index() -> str:
     provider = config.get_provider()
@@ -49,7 +88,21 @@ def index() -> str:
 def snap() -> str:
     provider = config.get_provider()
     max_chars = config.get_max_chars()
-    transcript = request.form.get("transcript", "")
+    limiter = _get_rate_limiter()
+    identity = _client_identity()
+    if not limiter.allow(identity):
+        logger.warning("Rate limit exceeded for %s", sanitize_for_log(identity))
+        body = _render_page(
+            transcript="",
+            snapshot=schema.UI_EMPTY,
+            error="Too many requests. Try again later.",
+            provider=provider,
+            max_chars=max_chars,
+        )
+        return Response(body, status_code=429)
+
+    raw_transcript = request.form.get("transcript", "")
+    transcript = truncate(raw_transcript, max_chars)
 
     if not transcript:
         return _render_page(
@@ -60,7 +113,7 @@ def snap() -> str:
             max_chars=max_chars,
         )
 
-    if len(transcript) > max_chars:
+    if raw_transcript and len(raw_transcript) > max_chars:
         return _render_page(
             transcript=transcript,
             snapshot=schema.UI_EMPTY,
