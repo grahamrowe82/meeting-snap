@@ -40,6 +40,12 @@
       button:hover {
         background: #00458c;
       }
+      .download-form {
+        margin-bottom: 2rem;
+      }
+      .download-form button {
+        margin-top: 0;
+      }
       .banner {
         background: #fff4cc;
         border: 1px solid #f0c36d;
@@ -135,6 +141,11 @@
     </form>
     {% if error %}
       <div class="error">{{ error }}</div>
+    {% endif %}
+    {% if download_ready %}
+      <form action="{{ url_for('download_markdown') }}" method="get" class="download-form">
+        <button type="submit">Download .md</button>
+      </form>
     {% endif %}
     <div class="results">
       <section>
