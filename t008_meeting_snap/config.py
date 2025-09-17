@@ -6,6 +6,7 @@ import os
 _DEFAULT_PROVIDER = "logic"
 _DEFAULT_TIMEOUT_MS = 10_000
 _DEFAULT_MAX_CHARS = 8000
+_DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 
 def _read_int(name: str, default: int) -> int:
@@ -38,3 +39,10 @@ def get_max_chars() -> int:
     """Return the maximum allowed transcript length in characters."""
 
     return _read_int("MEETING_SNAP_MAX_CHARS", _DEFAULT_MAX_CHARS)
+
+
+def get_openai_model() -> str:
+    """Return the configured OpenAI model identifier."""
+
+    model = os.getenv("OPENAI_MODEL", "").strip()
+    return model or _DEFAULT_OPENAI_MODEL
