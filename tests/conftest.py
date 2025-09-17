@@ -7,8 +7,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+STUBS = ROOT / "tests" / "_stubs"
+sys.path.insert(0, str(STUBS))
 if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+    sys.path.append(str(ROOT))
 
 
 from t008_meeting_snap import app as app_module
