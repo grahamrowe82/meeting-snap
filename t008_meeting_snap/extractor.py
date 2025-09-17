@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-from . import llm_fake, logic, schema
+from . import config, llm_fake, llm_openai, logic, schema
 
 
 def extract_snapshot(text: str, provider: str, timeout_ms: int) -> Dict[str, object]:
@@ -26,4 +26,6 @@ def extract_snapshot(text: str, provider: str, timeout_ms: int) -> Dict[str, obj
 def _extract_with_provider(text: str, provider_id: str, timeout_ms: int) -> Dict[str, object]:
     """Placeholder for future model provider integrations."""
 
+    if provider_id == "openai":
+        return llm_openai.extract(text, timeout_ms, config.get_openai_model())
     raise RuntimeError(f"Provider '{provider_id}' not implemented (timeout {timeout_ms} ms)")
