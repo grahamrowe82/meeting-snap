@@ -1,9 +1,11 @@
 """Flask application for the Meeting Snap baseline slice."""
+
 from __future__ import annotations
 
 from flask import Flask, render_template, request
 
 from .logic import assemble
+from .schema import empty_snapshot
 
 
 MAX_INPUT_CHARS = 8000
@@ -11,22 +13,12 @@ MAX_INPUT_CHARS = 8000
 app = Flask(__name__)
 
 
-def _empty_snapshot() -> dict:
-    return {
-        "decisions": [],
-        "actions": [],
-        "questions": [],
-        "risks": [],
-        "next_checkin": None,
-    }
-
-
 @app.get("/")
 def index() -> str:
     return render_template(
         "index.html",
         transcript="",
-        snapshot=_empty_snapshot(),
+        snapshot=empty_snapshot(),
         error=None,
     )
 
@@ -38,7 +30,7 @@ def snap() -> str:
         return render_template(
             "index.html",
             transcript="",
-            snapshot=_empty_snapshot(),
+            snapshot=empty_snapshot(),
             error=None,
         )
 
@@ -46,7 +38,7 @@ def snap() -> str:
         return render_template(
             "index.html",
             transcript=transcript,
-            snapshot=_empty_snapshot(),
+            snapshot=empty_snapshot(),
             error="Trim input to 8,000 characters.",
         )
 
