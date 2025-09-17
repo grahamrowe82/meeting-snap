@@ -48,6 +48,11 @@
         margin-bottom: 1.5rem;
         font-weight: 600;
       }
+      .banner.warning {
+        background: #ffe8d9;
+        border-color: #f3a86f;
+        color: #8a3b0d;
+      }
       .status {
         margin: 0 0 0.75rem 0;
       }
@@ -116,6 +121,9 @@
         Model assist: {{ 'ON' if model_assist else 'OFF' }}
       </span>
     </div>
+    {% if model_assist_note %}
+      <div class="banner warning">{{ model_assist_note }}</div>
+    {% endif %}
     <div class="banner">Don’t paste regulated/PII.</div>
     <p class="privacy-note"><strong>Privacy note:</strong> Snapshots may use AI assistance. Avoid sharing confidential or personal data.</p>
     <form action="{{ url_for('snap') }}" method="post">
