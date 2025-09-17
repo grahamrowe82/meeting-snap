@@ -4,9 +4,10 @@ from __future__ import annotations
 import json
 import re
 import textwrap
+from string import Template
 from typing import Any, Dict
 
-_PROMPT_TEMPLATE = textwrap.dedent(
+_PROMPT_TEMPLATE = Template(textwrap.dedent(
     """
     You are Meeting Snap, an assistant that extracts meeting outcomes for busy
     teams. Read the transcript and respond with a JSON object that matches the
@@ -28,10 +29,10 @@ _PROMPT_TEMPLATE = textwrap.dedent(
 
     Transcript:
     ---
-    {transcript}
+    $transcript
     ---
     """
-)
+))
 
 
 _DEFENSIVE_DECODER = json.JSONDecoder()
@@ -44,7 +45,7 @@ def build_prompt(transcript: str) -> str:
     clean_transcript = transcript.strip() if transcript else ""
     if not clean_transcript:
         clean_transcript = "(No transcript content provided.)"
-    return _PROMPT_TEMPLATE.format(transcript=clean_transcript)
+    return _PROMPT_TEMPLATE.safe_substitute(transcript=clean_transcript)
 
 
 def _decode_candidate(snippet: str) -> Dict[str, Any] | None:
