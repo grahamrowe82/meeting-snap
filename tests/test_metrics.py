@@ -28,13 +28,9 @@ def test_metrics_increment_after_snap(monkeypatch) -> None:
     monkeypatch.setenv("MEETING_SNAP_PROVIDER", "logic")
 
     with app_module.app.test_client() as client:
-        before = _collect_metrics(client)
         post_response = client.post("/snap", data={"transcript": "Brief hello."})
         assert post_response.status_code == 200
-        after = _collect_metrics(client)
+        payload = _collect_metrics(client)
 
-    assert after["requests_total"] == before["requests_total"] + 2
-    assert (
-        after['snaps_total{path="logic"}']
-        == before['snaps_total{path="logic"}'] + 1
-    )
+    assert payload["requests_total"] == 2
+    assert payload['snaps_total{path="logic"}'] == 1
