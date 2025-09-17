@@ -48,6 +48,26 @@
         margin-bottom: 1.5rem;
         font-weight: 600;
       }
+      .status {
+        margin: 0 0 0.75rem 0;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .badge.on {
+        background: #e6f7ef;
+        color: #0f6b3f;
+      }
+      .badge.off {
+        background: #e9ecf3;
+        color: #4e5666;
+      }
       .error {
         background: #ffe5e5;
         border: 1px solid #ff8c8c;
@@ -55,6 +75,12 @@
         padding: 0.75rem 1rem;
         border-radius: 4px;
         margin-bottom: 1rem;
+      }
+      .privacy-note {
+        margin-top: -1rem;
+        margin-bottom: 1.75rem;
+        color: #4a4a4a;
+        font-size: 0.95rem;
       }
       .results section {
         background: #fff;
@@ -85,10 +111,16 @@
   </head>
   <body>
     <h1>Meeting Snap</h1>
+    <div class="status">
+      <span class="badge {{ 'on' if model_assist else 'off' }}">
+        Model assist: {{ 'ON' if model_assist else 'OFF' }}
+      </span>
+    </div>
     <div class="banner">Don’t paste regulated/PII.</div>
+    <p class="privacy-note"><strong>Privacy note:</strong> Snapshots may use AI assistance. Avoid sharing confidential or personal data.</p>
     <form action="{{ url_for('snap') }}" method="post">
       <label for="transcript">Paste transcript</label>
-      <textarea id="transcript" name="transcript" maxlength="8000" placeholder="Paste meeting transcript here...">{{ transcript }}</textarea>
+      <textarea id="transcript" name="transcript" maxlength="{{ max_chars }}" placeholder="Paste meeting transcript here...">{{ transcript }}</textarea>
       <div>
         <button type="submit">Create snapshot</button>
       </div>
