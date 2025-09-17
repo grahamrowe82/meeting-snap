@@ -37,3 +37,37 @@ def test_snap_post_uses_fake_provider(monkeypatch) -> None:
     assert "Model assist: ON" in body
     assert "Use the fake LLM output for validation" in body
     assert "Share meeting notes with the wider team" in body
+    assert "Download .md" in body
+
+
+def test_download_requires_snapshot(monkeypatch) -> None:
+    """Downloading markdown without a snapshot returns 404."""
+
+    monkeypatch.delenv("MEETING_SNAP_PROVIDER", raising=False)
+
+    with app.test_client() as client:
+        response = client.get("/download.md")
+
+    assert response.status_code == 404
+
+
+def test_download_after_snap_returns_markdown(monkeypatch) -> None:
+    """After creating a snapshot the markdown download is available."""
+
+    monkeypatch.setenv("MEETING_SNAP_PROVIDER", "fake")
+
+    with app.test_client() as client:
+        post_response = client.post("/snap", data={"transcript": "Kickoff call"})
+        assert post_response.status_code == 200
+        download = client.get("/download.md")
+
+    assert download.status_code == 200
+    assert download.content_type == "text/markdown; charset=utf-8"
+    assert download.headers["Content-Disposition"] == "attachment; filename=\"meeting-snap.md\""
+    body = download.get_data(as_text=True)
+    assert "# Meeting Snap" in body
+    assert "- Use the fake LLM output for validation" in body
+    assert "- Share meeting notes with the wider team (Alex — Next Monday)" in body
+    assert "- Any blockers before launch?" in body
+    assert "- Timeline depends on vendor availability." in body
+    assert "- Next Tuesday" in body

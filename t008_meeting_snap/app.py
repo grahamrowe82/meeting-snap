@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import time
@@ -9,7 +10,7 @@ from typing import Mapping
 
 from flask import Flask, Response, render_template, request
 
-from . import config, extractor, metrics, schema
+from . import config, export, extractor, metrics, schema
 from .safety import RateLimiter, sanitize_for_log, truncate
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,8 @@ app.config.setdefault(
     "RATE_LIMITER",
     RateLimiter(config.get_rate_limit(), config.get_rate_window_s()),
 )
+
+_SNAPSHOT_CACHE: dict[str, Mapping[str, object]] = {}
 
 
 def _model_assist_enabled(provider: str) -> bool:
@@ -34,6 +37,7 @@ def _render_page(
     *,
     model_assist_used: bool = False,
     model_assist_attempted: bool = False,
+    download_ready: bool = False,
 ) -> str:
     assist_requested = _model_assist_enabled(provider)
     assist_note = None
@@ -48,6 +52,7 @@ def _render_page(
         model_assist=model_assist_used,
         model_assist_note=assist_note,
         max_chars=max_chars,
+        download_ready=download_ready,
     )
 
 
@@ -79,17 +84,34 @@ def _client_identity() -> str:
     return "global"
 
 
+def _has_snapshot(identity: str) -> bool:
+    return identity in _SNAPSHOT_CACHE
+
+
+def _store_snapshot(identity: str, snapshot: Mapping[str, object]) -> Mapping[str, object]:
+    stored = copy.deepcopy(snapshot)
+    _SNAPSHOT_CACHE[identity] = stored
+    return stored
+
+
+def _get_snapshot(identity: str) -> Mapping[str, object] | None:
+    return _SNAPSHOT_CACHE.get(identity)
+
+
 @app.get("/")
 def index() -> str:
     metrics.inc("requests_total")
     provider = config.get_provider()
     max_chars = config.get_max_chars()
+    identity = _client_identity()
+    download_ready = _has_snapshot(identity)
     return _render_page(
         transcript="",
         snapshot=schema.UI_EMPTY,
         error=None,
         provider=provider,
         max_chars=max_chars,
+        download_ready=download_ready,
     )
 
 
@@ -101,6 +123,7 @@ def snap() -> Response | str:
     max_chars = config.get_max_chars()
     limiter = _get_rate_limiter()
     identity = _client_identity()
+    download_ready = _has_snapshot(identity)
     raw_transcript = request.form.get("transcript", "")
     input_chars = len(raw_transcript)
     truncated = bool(raw_transcript and len(raw_transcript) > max_chars)
@@ -122,6 +145,7 @@ def snap() -> Response | str:
             error="Too many requests. Try again later.",
             provider=provider,
             max_chars=max_chars,
+            download_ready=download_ready,
         )
         _log_snap_event(
             provider_id,
@@ -141,6 +165,7 @@ def snap() -> Response | str:
             error=None,
             provider=provider,
             max_chars=max_chars,
+            download_ready=download_ready,
         )
         _log_snap_event(
             provider_id,
@@ -160,6 +185,7 @@ def snap() -> Response | str:
             error=f"Trim input to {max_chars:,} characters.",
             provider=provider,
             max_chars=max_chars,
+            download_ready=download_ready,
         )
         _log_snap_event(
             provider_id,
@@ -190,6 +216,9 @@ def snap() -> Response | str:
         if tokens is not None:
             metrics.inc("llm_tokens_total", value=tokens)
 
+    snapshot = _store_snapshot(identity, snapshot)
+    download_ready = True
+
     body = _render_page(
         transcript=transcript,
         snapshot=snapshot,
@@ -198,6 +227,7 @@ def snap() -> Response | str:
         max_chars=max_chars,
         model_assist_used=used_model_assist,
         model_assist_attempted=provider_id != "logic",
+        download_ready=download_ready,
     )
     _log_snap_event(
         provider_id,
@@ -209,6 +239,21 @@ def snap() -> Response | str:
         tokens=tokens,
     )
     return body
+
+
+@app.get("/download.md")
+def download_markdown() -> Response:
+    metrics.inc("requests_total")
+    identity = _client_identity()
+    snapshot = _get_snapshot(identity)
+    if snapshot is None:
+        return Response(b"", status_code=404)
+
+    payload = export.to_markdown(snapshot)
+    response = Response(payload)
+    response.content_type = "text/markdown; charset=utf-8"
+    response.headers = {"Content-Disposition": "attachment; filename=\"meeting-snap.md\""}
+    return response
 
 
 @app.get("/metrics")
