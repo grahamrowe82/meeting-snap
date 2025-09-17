@@ -3,9 +3,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, MutableMapping, Optional
 
+from . import config
 
-MAX_ITEMS = 10
-MAX_TEXT_LENGTH = 120
+
+MAX_ITEMS = config.get_max_items()
+MAX_TEXT_LENGTH = config.get_max_text_len()
 _REQUIRED_KEYS = ("decisions", "actions", "questions", "risks", "next_checkin")
 
 
@@ -94,18 +96,27 @@ def _normalize_string_list(value: Any, field: str) -> List[str]:
     """Normalize a list of user-facing strings."""
 
     items = _coerce_list(value, field)
-    return [_normalize_string(item, field) for item in items]
+    return _cap_list(items, field)
+
+
+def _cap_list(xs: List[Any], field: str) -> List[str]:
+    """Return a normalized list of strings limited by the configured caps."""
+
+    out: List[str] = []
+    for x in xs[:MAX_ITEMS]:
+        s = _normalize_string(x, field)
+        if s:
+            out.append(s[:MAX_TEXT_LENGTH])
+    return out
 
 
 def _coerce_list(value: Any, field: str) -> List[Any]:
-    """Return ``value`` as a list enforcing the maximum size constraint."""
+    """Return ``value`` as a list or raise if the type is invalid."""
 
     if value is None:
         return []
     if not isinstance(value, list):
         raise TypeError(f"{field} must be a list")
-    if len(value) > MAX_ITEMS:
-        raise ValueError(f"{field} cannot contain more than {MAX_ITEMS} items")
     return value
 
 
@@ -138,15 +149,23 @@ def _normalize_actions(value: Any) -> List[Dict[str, Optional[str]]]:
 
     items = _coerce_list(value, "actions")
     normalized: List[Dict[str, Optional[str]]] = []
-    for item in items:
-        if not isinstance(item, MutableMapping):
-            raise TypeError("actions entries must be dictionaries")
+    for item in items[:MAX_ITEMS]:
+        if not isinstance(item, dict):
+            continue
         if "action" not in item:
             raise ValueError("actions entries must include an 'action' field")
         action_text = _normalize_string(item.get("action"), "actions.action")
+        if not action_text:
+            continue
         owner = _normalize_optional_string(item.get("owner"), "actions.owner")
         due = _normalize_optional_string(item.get("due"), "actions.due")
-        normalized.append({"action": action_text, "owner": owner, "due": due})
+        normalized.append(
+            {
+                "action": action_text[:MAX_TEXT_LENGTH],
+                "owner": owner[:MAX_TEXT_LENGTH] if owner else None,
+                "due": due[:MAX_TEXT_LENGTH] if due else None,
+            }
+        )
     return normalized
 
 
