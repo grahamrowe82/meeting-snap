@@ -27,8 +27,13 @@ def extract_snapshot(
             candidate = _extract_with_provider(text, provider_id, timeout_ms)
             snapshot = schema.validate_snapshot(candidate)
             return snapshot, True
-    except Exception:
-        logging.exception("Provider '%s' failed; falling back to logic baseline", provider_id or "")
+    except Exception as exc:
+        logging.exception(
+            "Provider '%s' failed; falling back to logic baseline: %s: %s",
+            provider_id or "",
+            type(exc).__name__,
+            str(exc)[:300],
+        )
         fallback = logic.assemble(text)
         snapshot = schema.validate_snapshot(fallback)
         return snapshot, False
