@@ -159,7 +159,9 @@ def snap() -> Response | str:
             fallback="rate_limit",
             tokens=tokens,
         )
-        return Response(body, status_code=429)
+        response = Response(body)
+        response.status_code = 429
+        return response
 
     if not transcript:
         body = _render_page(
@@ -250,12 +252,15 @@ def download_markdown() -> Response:
     identity = _client_identity()
     snapshot = _get_snapshot(identity)
     if snapshot is None:
-        return Response(b"", status_code=404)
+        response = Response(b"")
+        response.status_code = 404
+        return response
 
     payload = export.to_markdown(snapshot)
     response = Response(payload)
     response.content_type = "text/markdown; charset=utf-8"
-    response.headers = {"Content-Disposition": "attachment; filename=\"meeting-snap.md\""}
+    if hasattr(response, 'headers'):
+        response.headers["Content-Disposition"] = "attachment; filename=\"meeting-snap.md\""
     return response
 
 

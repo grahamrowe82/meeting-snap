@@ -23,6 +23,8 @@ class Response:
 
     def __init__(self, body: str | bytes, status_code: int = 200) -> None:
         self.status_code = status_code
+        self.content_type = "text/html; charset=utf-8"
+        self.headers = {}
         if isinstance(body, bytes):
             self._data = body
         else:
