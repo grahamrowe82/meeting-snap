@@ -5,7 +5,10 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import os
+import sys
 import time
+from pathlib import Path
 from typing import Mapping
 
 from flask import Flask, Response, render_template, request
@@ -319,5 +322,25 @@ def _log_snap_event(
     logging.info(json.dumps(payload))
 
 
+def _ensure_real_flask_runtime() -> None:
+    """Validate that the runtime Flask import is not satisfied by a test stub."""
+
+    module = sys.modules.get("flask")
+    module_file = getattr(module, "__file__", None) if module else None
+    if not module_file:
+        # If Flask is not importable the normal ModuleNotFoundError will surface.
+        return
+
+    parts = Path(module_file).resolve().parts
+    if "_stubs" in parts:
+        raise RuntimeError(
+            "Real Flask is required to run the Meeting Snap app; the test stub is on sys.path."
+        )
+
+
 if __name__ == "__main__":  # pragma: no cover
-    app.run(debug=True)
+    _ensure_real_flask_runtime()
+    if os.environ.get("MEETING_SNAP_SKIP_RUN"):
+        logging.getLogger(__name__).info("MEETING_SNAP_SKIP_RUN set; skipping app.run().")
+    else:
+        app.run(debug=True)
