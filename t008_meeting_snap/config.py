@@ -6,6 +6,8 @@ import os
 _DEFAULT_PROVIDER = "logic"
 _DEFAULT_TIMEOUT_MS = 10_000
 _DEFAULT_MAX_CHARS = 8000
+_DEFAULT_RATE_LIMIT = 30
+_DEFAULT_RATE_WINDOW_S = 86_400
 _DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 
@@ -39,6 +41,18 @@ def get_max_chars() -> int:
     """Return the maximum allowed transcript length in characters."""
 
     return _read_int("MEETING_SNAP_MAX_CHARS", _DEFAULT_MAX_CHARS)
+
+
+def get_rate_limit() -> int:
+    """Return the maximum number of requests allowed per rate window."""
+
+    return _read_int("MEETING_SNAP_RATE_LIMIT", _DEFAULT_RATE_LIMIT)
+
+
+def get_rate_window_s() -> int:
+    """Return the rate limiting window duration in seconds."""
+
+    return _read_int("MEETING_SNAP_RATE_WINDOW_S", _DEFAULT_RATE_WINDOW_S)
 
 
 def get_openai_model() -> str:

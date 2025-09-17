@@ -13,12 +13,9 @@ from .safety import RateLimiter, sanitize_for_log, truncate
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-_DEFAULT_RATE_LIMIT_REQUESTS = 60
-_DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60.0
 app.config.setdefault(
     "RATE_LIMITER",
-    RateLimiter(_DEFAULT_RATE_LIMIT_REQUESTS, _DEFAULT_RATE_LIMIT_WINDOW_SECONDS),
+    RateLimiter(config.get_rate_limit(), config.get_rate_window_s()),
 )
 
 
@@ -57,9 +54,9 @@ def _get_rate_limiter() -> RateLimiter:
     if isinstance(limiter, RateLimiter):
         return limiter
 
-    requests_limit = int(app.config.get("RATE_LIMIT_REQUESTS", _DEFAULT_RATE_LIMIT_REQUESTS))
+    requests_limit = int(app.config.get("RATE_LIMIT_REQUESTS", config.get_rate_limit()))
     window_seconds = float(
-        app.config.get("RATE_LIMIT_WINDOW_SECONDS", _DEFAULT_RATE_LIMIT_WINDOW_SECONDS)
+        app.config.get("RATE_LIMIT_WINDOW_SECONDS", config.get_rate_window_s())
     )
     limiter = RateLimiter(requests_limit, window_seconds)
     app.config["RATE_LIMITER"] = limiter
