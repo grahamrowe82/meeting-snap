@@ -6,6 +6,8 @@ import os
 _DEFAULT_PROVIDER = "logic"
 _DEFAULT_TIMEOUT_MS = 10_000
 _DEFAULT_MAX_CHARS = 8000
+_DEFAULT_MAX_ITEMS = 100
+_DEFAULT_MAX_TEXT_LEN = 240
 _DEFAULT_RATE_LIMIT = 30
 _DEFAULT_RATE_WINDOW_S = 86_400
 _DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -41,6 +43,18 @@ def get_max_chars() -> int:
     """Return the maximum allowed transcript length in characters."""
 
     return _read_int("MEETING_SNAP_MAX_CHARS", _DEFAULT_MAX_CHARS)
+
+
+def get_max_items() -> int:
+    """Return the maximum number of list items allowed in snapshots."""
+
+    return _read_int("MEETING_SNAP_MAX_ITEMS", _DEFAULT_MAX_ITEMS)
+
+
+def get_max_text_len() -> int:
+    """Return the maximum length for individual snapshot text fields."""
+
+    return _read_int("MEETING_SNAP_MAX_TEXT_LEN", _DEFAULT_MAX_TEXT_LEN)
 
 
 def get_rate_limit() -> int:
