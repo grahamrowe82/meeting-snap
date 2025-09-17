@@ -24,6 +24,10 @@
 | `MEETING_SNAP_RATE_WINDOW_S` | `86400` | Size of the sliding rate-limit window in seconds. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model name when `MEETING_SNAP_PROVIDER=openai`.
 
+## Starting the service
+- **Local development:** `python -m t008_meeting_snap.app` (uses the built-in Flask development server with debug logging enabled).
+- **Hosted / production:** `gunicorn t008_meeting_snap.app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4` (matches the `Procfile` used by platforms that support process definitions).
+
 ## Runbook
 ### LLM provider degraded or unavailable
 1. Confirm alerts by checking `/metrics` for a spike in `snaps_total{path="fallback"}` or drops in `llm_calls_total`/`llm_latency_ms_sum`.
