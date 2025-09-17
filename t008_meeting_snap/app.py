@@ -32,13 +32,22 @@ def _render_page(
     error: str | None,
     provider: str,
     max_chars: int,
+    *,
+    model_assist_used: bool = False,
+    model_assist_attempted: bool = False,
 ) -> str:
+    assist_requested = _model_assist_enabled(provider)
+    assist_note = None
+    if model_assist_attempted and assist_requested and not model_assist_used:
+        assist_note = "Model assist unavailable—using baseline."
+
     return render_template(
         "index.html",
         transcript=transcript,
         snapshot=snapshot,
         error=error,
-        model_assist=_model_assist_enabled(provider),
+        model_assist=model_assist_used,
+        model_assist_note=assist_note,
         max_chars=max_chars,
     )
 
@@ -123,13 +132,15 @@ def snap() -> str:
         )
 
     timeout_ms = config.get_timeout_ms()
-    snapshot = extractor.extract_snapshot(transcript, provider, timeout_ms)
+    snapshot, used_model_assist = extractor.extract_snapshot(transcript, provider, timeout_ms)
     return _render_page(
         transcript=transcript,
         snapshot=snapshot,
         error=None,
         provider=provider,
         max_chars=max_chars,
+        model_assist_used=used_model_assist,
+        model_assist_attempted=True,
     )
 
 
