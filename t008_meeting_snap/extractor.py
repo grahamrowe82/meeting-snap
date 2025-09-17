@@ -1,6 +1,8 @@
 """Snapshot extraction orchestrator for Meeting Snap."""
 from __future__ import annotations
 
+import logging
+
 from typing import Dict, Tuple
 
 from . import config, llm_fake, llm_openai, logic, schema
@@ -26,6 +28,7 @@ def extract_snapshot(
             snapshot = schema.validate_snapshot(candidate)
             return snapshot, True
     except Exception:
+        logging.exception("Provider '%s' failed; falling back to logic baseline", provider_id or "")
         fallback = logic.assemble(text)
         snapshot = schema.validate_snapshot(fallback)
         return snapshot, False

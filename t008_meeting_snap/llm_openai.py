@@ -37,7 +37,7 @@ def _create_client(timeout_s: float | None):
 def _call_openai(client, *, model: str, prompt: str, timeout_s: float | None) -> str:
     try:
         return _call_responses_api(client, model=model, prompt=prompt, timeout_s=timeout_s)
-    except AttributeError:
+    except Exception:
         return _call_chat_completions_api(client, model=model, prompt=prompt, timeout_s=timeout_s)
 
 
@@ -48,8 +48,6 @@ def _call_responses_api(client, *, model: str, prompt: str, timeout_s: float | N
         "input": prompt,
         "response_format": {"type": "json_object"},
     }
-    if timeout_s is not None:
-        kwargs["timeout"] = timeout_s
     response = responses.create(**kwargs)
 
     output_text = getattr(response, "output_text", None)
@@ -80,14 +78,13 @@ def _call_chat_completions_api(client, *, model: str, prompt: str, timeout_s: fl
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
     }
-    if timeout_s is not None:
-        kwargs["timeout"] = timeout_s
     kwargs["response_format"] = {"type": "json_object"}
 
     try:
         completion = completions.create(**kwargs)
     except TypeError:
         kwargs.pop("response_format", None)
+        kwargs.pop("timeout", None)
         completion = completions.create(**kwargs)
 
     choices = getattr(completion, "choices", None)
